@@ -4,6 +4,8 @@ Created on Thu Dec  7 12:56:51 2017
 
 @author: WFN53616
 """
+import math;
+
 def CalcBottomRightRingNum(ringNum):
     return 1 + 4*(ringNum*(ringNum + 1));
 
@@ -18,7 +20,7 @@ def GetRingNum(num):
     return ringNum;
 
 def GetDifferenceFromBottomRightRingNum(ringNum, num):
-    return num - CalcBottomRightRingNum(ringNum);
+    return CalcBottomRightRingNum(ringNum) - num;
 
 #measured from 1
 def GetCoordinates(ringNum, diff):
@@ -28,23 +30,26 @@ def GetCoordinates(ringNum, diff):
         else:
             raise Exception("incorrect inputs");
     maxDiff = CalcBottomRightRingNum(ringNum) - CalcBottomRightRingNum(ringNum - 1);
-    if(maxDiff > diff):
+    if(diff > maxDiff):
+        print(maxDiff, diff)
         raise Exception("You cannot be on this ring")
-    coordinates = (ringNum, ringNum);
+    coordX = ringNum;
+    coordY = ringNum;
     sideSteps = ringNum * 2;
     for i in range(diff):
         #left
         if(i/sideSteps == 0):
-            coordinates[0]-=1;
+            coordX-=1;
         # up
         elif(i/sideSteps == 1):
-            coordinates[1]-=1;
+            coordY-=1;
         #right
         elif(i/sideSteps == 2):
-            coordinates[0]+=1;
+            coordX+=1;
         #down
         elif(i/sideSteps == 3):
-            coordinates[1]+=1;
+            coordY+=1;
+    coordinates = (coordX, coordY);
     return coordinates
         
         
@@ -54,15 +59,21 @@ def GetSpiralCoordinates(num):
     ringNum = GetRingNum(num);
     diff = GetDifferenceFromBottomRightRingNum(ringNum, num);
     return GetCoordinates(ringNum, diff);
+    
+def GetManhattanDistance(coordinates):
+    return abs(coordinates[0]) + abs(coordinates[1]);
+    
+def GetShortestPath(num):
+    return GetManhattanDistance(GetSpiralCoordinates(num));
 
 
-print (GetDifferenceFromBottomRightRingNum( 0, 1) == 0);
+"""print (GetDifferenceFromBottomRightRingNum( 0, 1) == 0);
 print (GetDifferenceFromBottomRightRingNum(1, 9) == 0);
 print (GetDifferenceFromBottomRightRingNum(2, 25) == 0);
 print (GetDifferenceFromBottomRightRingNum(3, 49) == 0);
 print (GetDifferenceFromBottomRightRingNum(4, 81) == 0);    
 
-"""print (CalcBottomRightRingNum(0) == 1);
+print (CalcBottomRightRingNum(0) == 1);
 print (CalcBottomRightRingNum(1) == 9);
 print (CalcBottomRightRingNum(2) == 25);
 print (CalcBottomRightRingNum(3) == 49);
@@ -88,4 +99,11 @@ print (GetDifferenceFromBottomRightRingNum(4, 91) == 10);
 print (GetDifferenceFromBottomRightRingNum(1, 18) == 9);
 print (GetDifferenceFromBottomRightRingNum(2, 32) == 7);
 print (GetDifferenceFromBottomRightRingNum(3, 55) == 6);
-print (GetDifferenceFromBottomRightRingNum(4, 89) == 8);"""
+print (GetDifferenceFromBottomRightRingNum(4, 89) == 8);
+
+print(GetShortestPath(1)==0);
+print(GetShortestPath(12)==3);
+print(GetShortestPath(23)==2);
+print(GetShortestPath(1024)==31);"""
+    
+print(GetShortestPath(368078));
