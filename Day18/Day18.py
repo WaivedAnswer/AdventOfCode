@@ -44,7 +44,7 @@ def ExecuteInstruction(registers, input, lineCount, sendList, receiveList):
     if(lineCount >= len(input)):
         return False, lineCount, sentCount
     line = input[lineCount].strip()
-    
+    print line
     words = line.split()
     
     if(words[1] not in registers):
@@ -63,22 +63,21 @@ def ExecuteInstruction(registers, input, lineCount, sendList, receiveList):
         registers[words[1]] %= int(words[2]) if isDigit(words[2]) else registers[words[2]]
     elif(words[0] == "rcv"):
         if(len(receiveList) == 0):
-            #print "Hold"
             return False, lineCount, sentCount
+        print "Free"
         registers[words[1]] = receiveList.pop(0)
     elif(words[0] == "jgz"):
         if(registers[words[1]] > 0): 
             skip = int(words[2]) if isDigit(words[2]) else registers[words[2]]
             
     lineCount += skip;
-    
     return True, lineCount, sentCount
 
 def Day18P2(input):
     registers0 = {}
     registers1 = {}
     registers0['p'] = 0
-    registers0['p'] = 1
+    registers1['p'] = 1
     counter0 = 0
     counter1 = 0
     Sent0 = []
@@ -88,7 +87,6 @@ def Day18P2(input):
     running0 = True
     running1 = True
     while (running0 or running1):
-        
         running0, counter0, sendCount = ExecuteInstruction(registers0, input, counter0, Sent0, Sent1)
         running1, counter1, sendCount = ExecuteInstruction(registers1, input, counter1, Sent1, Sent0)
         
