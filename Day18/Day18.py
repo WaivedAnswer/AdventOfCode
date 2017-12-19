@@ -31,7 +31,7 @@ def Day18(input):
             
         elif(words[0] == "rcv"):
             if(registers[words[1]] != 0):
-                print lastSound
+                print (lastSound)
                 break
         elif(words[0] == "jgz"):
             if(registers[words[1]] > 0): 
@@ -44,7 +44,7 @@ def ExecuteInstruction(registers, input, lineCount, sendList, receiveList):
     if(lineCount >= len(input)):
         return False, lineCount, sentCount
     line = input[lineCount].strip()
-    print line
+    
     words = line.split()
     
     if(words[1] not in registers):
@@ -64,10 +64,10 @@ def ExecuteInstruction(registers, input, lineCount, sendList, receiveList):
     elif(words[0] == "rcv"):
         if(len(receiveList) == 0):
             return False, lineCount, sentCount
-        print "Free"
         registers[words[1]] = receiveList.pop(0)
     elif(words[0] == "jgz"):
-        if(registers[words[1]] > 0): 
+        reg = int(words[1]) if isDigit(words[1]) else registers[words[1]]
+        if(reg > 0): 
             skip = int(words[2]) if isDigit(words[2]) else registers[words[2]]
             
     lineCount += skip;
@@ -92,7 +92,7 @@ def Day18P2(input):
         
         sentCount1 += sendCount
         
-    print sentCount1
+    print (sentCount1)
         
 def Day18File(filename):
     testFile = open(filename)
