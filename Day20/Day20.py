@@ -1,10 +1,11 @@
 #day20
 import math
 class Particle:
-    def __init__(self, position, velocity, acceleration):
+    def __init__(self, position, velocity, acceleration, particleId):
         self.position = position
         self.velocity = velocity
         self.acceleration = acceleration
+        self.particleId = particleId
         
 def GetCoordinatesFromTag(input):
     #print input
@@ -78,16 +79,18 @@ def DoParticlesCollide(particle1, particle2):
     #print allTimes   
     return len(allTimes) != 0
     
-def CheckForFutureCollisions(particles):
-    for particle1 in particles:
-        for particle2 in particles:
-            if particle1 == particle2:
+def GetAllFutureCollisions(particles):
+    futureCollisions = {}
+    counter
+    for i in range(particles):
+        for j in range(particles):
+            if i == j:
                 continue
-            if(DoParticlesCollide(particle1, particle2)):
+            if(DoParticlesCollide(particles[i], particles[j])):
                 #print "collide"
-                return True
+                futureCollisions[i] = (particles[i], particles[j])
     #print "no collisions"
-    return False
+    return futureCollisions
             
     
 def ManhattanDistance(particle):
@@ -104,18 +107,22 @@ def UpdateParticle(particle):
 
 def Day20(input):
     particles = []
+    counter = 0
     for line in input:
         values = line.split()
         position = GetCoordinatesFromTag(values[0])
         velocity = GetCoordinatesFromTag(values[1])
         acceleration = GetCoordinatesFromTag(values[2])
-        particle = Particle(position, velocity, acceleration)
+        particle = Particle(position, velocity, acceleration, counter)
         particles.append(particle)
+        counter += 1
         
     print "Closest: " + str(GetClosestValueInLongTerm(particles))
     
     time = 0
-    while CheckForFutureCollisions(particles):
+    futureCollisions = GetAllFutureCollisions(particles)
+    
+    while len(futureCollisions) > 0:
         for particle in particles:
             UpdateParticle(particle)
         tempParticles = particles[:]
@@ -128,6 +135,8 @@ def Day20(input):
                         tempParticles.remove(particle1)
                     if(particle2 in tempParticles):
                         tempParticles.remove(particle2)
+                    if()
+                        
         particles = tempParticles
     
     print "ParticleCount: " + str(len(particles))
