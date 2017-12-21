@@ -53,11 +53,11 @@ def CheckParticleCollision(particle1, particle2):
     particle1.position[2] == particle2.position[2]
     
     
-def DoParticlesCollide(particle1, particle2):
+def CheckParticlesCollisionTime(particle1, particle2):
     #df=v_i*t + 1/2*a*t^2 + di
     #0 =  + (v_i2 - v_i1) * t + (d2 - d1)
     if(CheckParticleCollision(particle1, particle2)):
-        return True
+        return 0;
     timesX = Get1DCollisionTime(particle1, particle2, 0)
     timesY = Get1DCollisionTime(particle1, particle2, 1)
     timesZ = Get1DCollisionTime(particle1, particle2, 2)
@@ -77,18 +77,20 @@ def DoParticlesCollide(particle1, particle2):
     if(set(timesZ) != set([0])):
         allTimes = allTimes.intersection(set(timesZ))
     #print allTimes   
-    return len(allTimes) != 0
+    
+    return min[i for i in allTimes if i >= 0]
     
 def GetAllFutureCollisions(particles):
-    futureCollisions = {}
-    counter
-    for i in range(particles):
-        for j in range(particles):
+    futureCollisions = []
+    for i in range(len(particles)):
+        for j in range(len(particles)):
             if i == j:
                 continue
-            if(DoParticlesCollide(particles[i], particles[j])):
+            time = CheckParticlesCollisionTime(particles[i], particles[j])
+            if(time >= 0):
                 #print "collide"
-                futureCollisions[i] = (particles[i], particles[j])
+                futureCollisions.append((time, particles[i].particleId, particles[j].particleId))
+                futureCollisions.append((time, particles[j].particleId, particles[i].particleId))
     #print "no collisions"
     return futureCollisions
             
@@ -103,6 +105,19 @@ def UpdateParticle(particle):
     particle.position[0] += particle.velocity[0]
     particle.position[1] += particle.velocity[1]
     particle.position[2] += particle.velocity[2]
+    
+def RemoveAllFutureCollisions(futureCollisions, particleId):
+    
+    if(particleId not in futureCollisions):
+        return
+    collisions = futureCollisions[particleId]
+    for collision in collisions:
+        if(collision[1] in futureCollisions):
+            futureCollisions[collision[1]].remove((collision[1], collision[0]))
+            if (len(futureCollisions[collision[1]]) == 0):
+                futureCollisions.pop(collision[1])
+    futureCollisions.pop(particleId)
+    #print futureCollisions, particleId
     
 
 def Day20(input):
@@ -135,7 +150,24 @@ def Day20(input):
                         tempParticles.remove(particle1)
                     if(particle2 in tempParticles):
                         tempParticles.remove(particle2)
-                    if()
+                    RemoveAllFutureCollisions(futureCollisions, particle1.particleId)
+                    RemoveAllFutureCollisions(futureCollisions, particle2.particleId)
+                    
+        while len(futureCollisions) > 0:
+            for particle in particles:
+                UpdateParticle(particle)
+            tempParticles = particles[:]
+            for particle1 in particles:
+                for particle2 in particles:
+                    if particle1 == particle2:
+                        continue
+                    if(CheckParticleCollision(particle1, particle2)):
+                        if(particle1 in tempParticles):
+                            tempParticles.remove(particle1)
+                        if(particle2 in tempParticles):
+                            tempParticles.remove(particle2)
+                        RemoveAllFutureCollisions(futureCollisions, particle1.particleId)
+                        RemoveAllFutureCollisions(futureCollisions, particle2.particleId)
                         
         particles = tempParticles
     
