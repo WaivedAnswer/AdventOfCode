@@ -81,18 +81,25 @@ def CheckParticlesCollisionTime(particle1, particle2):
     return min[i for i in allTimes if i >= 0]
     
 def GetAllFutureCollisions(particles):
+    futureCollisionTimes = []
     futureCollisions = []
     for i in range(len(particles)):
         for j in range(len(particles)):
+            if((particles[i].particleId, particles[j].particleId) in futureCollisions or
+            (particles[j].particleId, particles[i].particleId) in futureCollisions):
+                continue
+            
             if i == j:
                 continue
             time = CheckParticlesCollisionTime(particles[i], particles[j])
             if(time >= 0):
                 #print "collide"
-                futureCollisions.append((time, particles[i].particleId, particles[j].particleId))
-                futureCollisions.append((time, particles[j].particleId, particles[i].particleId))
+                futureCollisions.append((particles[i].particleId, particles[j].particleId))
+                futureCollisions.append((particles[j].particleId, particles[i].particleId))
+                futureCollisionTimes.append((time, particles[i].particleId, particles[j].particleId))
+                futureCollisionTimes.append((time, particles[j].particleId, particles[i].particleId))
     #print "no collisions"
-    return futureCollisions
+    return futureCollisionTimes
             
     
 def ManhattanDistance(particle):
@@ -152,9 +159,9 @@ def Day20(input):
                         tempParticles.remove(particle2)
                     RemoveAllFutureCollisions(futureCollisions, particle1.particleId)
                     RemoveAllFutureCollisions(futureCollisions, particle2.particleId)
-                    
+        futureCollisions = sorted(futureCollisions, key = lambda x: x[0])
         while len(futureCollisions) > 0:
-            for particle in particles:
+            for particle in particles:q
                 UpdateParticle(particle)
             tempParticles = particles[:]
             for particle1 in particles:
