@@ -15,5 +15,5 @@ start chrome "http://adventofcode.com/2015/day/%number%" "http://adventofcode.co
 
 start cmd /k "cd %newDirectory%"
 
-cp Common.py %newDirectory%
+copy Common.py %newDirectory%
 pause
