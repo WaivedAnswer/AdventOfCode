@@ -12,4 +12,4 @@ def inputAsString():
 	
 def inputAsLines():
 	file = open("Input.txt")
-	return file.read().splitlines()
+	return file.readlines()
