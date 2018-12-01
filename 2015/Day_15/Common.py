@@ -13,8 +13,3 @@ def inputAsString():
 def inputAsLines():
 	file = open("Input.txt")
 	return file.read().splitlines()
-	
-def inputAsNums():
-	lines = inputAsLines()
-	return [ int(x) for x in lines]
-	
