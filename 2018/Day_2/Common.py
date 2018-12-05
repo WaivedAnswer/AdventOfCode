@@ -1,3 +1,5 @@
+import re
+
 def fileAsString(filename):
 	file = open(filename)
 	return file.read()
@@ -13,3 +15,9 @@ def inputAsString():
 def inputAsLines():
 	file = open("Input.txt")
 	return file.read().splitlines()
+	
+def numbers(line):
+	return [int(numstr) for numstr in re.sub("[^0-9]", " ", line).split()]
+	
+def maxValuePair(dictionary):
+	return max(dictionary.items(), key=lambda x:x[1])

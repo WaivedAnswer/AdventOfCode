@@ -1,111 +1,66 @@
 import Common
 import datetime
-import collections
+from collections import defaultdict
 import operator
+from enum import Enum
+
+class State(Enum):
+	BEGIN = 0
+	WAKE = 1
+	SLEEP = 2
 
 def part1(input):
-    twoCount = 0
-    prev_gid = None
-    logs = {}
-    for line in input:
-        clean = Common.sub(line)
-        values = clean.split()
-        year = int(values[0])
-        month = int(values[1])
-        day = int(values[2])
-        hour = int(values[3])
-        minutes = int(values[4])
-        date = datetime.datetime(year, month, day)
-        if(hour == 23):
-            date = date + datetime.timedelta(days = 1)
-        if(date not in logs):
-            logs[date] = [None,{}]
-        if(len(values) == 6):
-            logs[date][0] = int(values[5])
-        fullDate = datetime.datetime(year,month,day,hour,minutes)
-        if line.count("wakes"):
-            print("wakes" + line)
-            logs[date][1][fullDate] = False
-        elif line.count("falls"):
-            print("falls" + line)
-            logs[date][1][fullDate] = True
-        else: # begins
-            print("begins" + line)
-            logs[date][1][fullDate] = False
-    
-    sleepCounts = {}
-    sleepers = {}
-    sleepMinutes = {}
-    for date, guardLog in logs.items():
-        gid = guardLog[0]
-        #if(gid == None):
-        #    gid = logs[date - datetime.timedelta(days = 1)][0]
-        minutes = guardLog[1]
-        sleepTime = None
-        for fullDate, value in collections.OrderedDict(sorted(minutes.items())).items():
-            if(value == True):
-                sleepTime = fullDate
-            elif(not sleepTime == None):
-                if(gid not in sleepCounts):
-                    sleepCounts[gid] = 0
-                sleepCounts[gid] = sleepCounts[gid] + ((fullDate - sleepTime).seconds/60)
-                if(gid not in sleepMinutes):
-                    sleepMinutes[gid] = {}
-                startMinute = sleepTime.minute
-                endMinute = fullDate.minute
-                minRange = range(startMinute,endMinute)
-                if(endMinute < startMinute):
-                    minRange = range(endMinute, 60).extend(range(0, startMinute))
-                    print(minRange)
-                for minute in range(startMinute, endMinute):
-                    if(minute not in sleepMinutes[gid]):
-                        sleepMinutes[gid][minute] = 0
-                    sleepMinutes[gid][minute] = sleepMinutes[gid][minute] + 1
-                sleepTime = None
-            else:
-                sleepTime = None
-                continue
-                
-    maxId = max(sleepCounts.items(), key=operator.itemgetter(1))[0]
-    print(maxId) 
-    maxMin = max(sleepMinutes[maxId].items(), key=operator.itemgetter(1))[0]
-    
-    print(maxMin)
-    print(maxId * maxMin)
-    
-    maxGuard = None
-    maxCount = 0
-    maxMinute = None
-    for gid, minutes in sleepMinutes.items():
-        print(gid, minutes)
-        maxMin = max(minutes.items(), key=operator.itemgetter(1))
-        if(maxMin[1] > maxCount):
-            maxGuard = gid
-            maxCount = maxMin[1]
-            maxMinute = maxMin[0]
-    print(sleepMinutes[maxGuard])
-    print(maxGuard, maxMinute)
-    print(maxGuard * maxMinute)
-    #guard = 3137
-    """if line.count("wakes"):
-        if(gid not in sleepCounts):
-            sleepCounts[gid] = 0
-        if(gid not in sleepers):
-            continue
-        sleepCounts[gid] = sleepCounts[gid] + minutes - sleepers[gid]
-        sleepers.clear()
-    elif line.count("falls"):
-        sleepers[gid] = [minutes]
-    else: # beings
-        onDuty = gid"""
-    
-            
+	entries = {}
+	for line in input:
+		numbers = Common.numbers(line)
+		date = datetime.datetime(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4])
+		gid = None
+		if(len(numbers) == 6):
+			gid = numbers[5]
+		state = None
+		if("wakes" in line):
+			state = State.WAKE
+		elif("falls" in line):
+			state = State.SLEEP
+		else:
+			state = State.BEGIN
+			
+		entries[date] = (gid, state)
+	
+	prev_gid = None
+	sleepTime = None
+	sleepTotals = defaultdict(int)
+	sleepMinutes = defaultdict(lambda: defaultdict(int))
+	for date, guardState in sorted(entries.items()):
+		gid = prev_gid
+		if(guardState[0]):
+			gid = guardState[0]
+		state = guardState[1]
+		if(state == State.SLEEP):
+			sleepTime = date
+		elif(state == State.WAKE):
+			time = ((date - sleepTime).total_seconds())/60
+			sleepTotals[gid] += time
+			for minute in range(sleepTime.minute, date.minute):
+				sleepMinutes[gid][minute] += 1
+			sleepTime = None
+		else:
+			sleepTime = None
+		prev_gid = gid
+		
+	max_gid = Common.maxValuePair(sleepTotals)[0]
+	max_minute = Common.maxValuePair(sleepMinutes[max_gid])[0]
+	print(max_gid, max_minute)
+	print(max_minute * max_gid)
+	
+	maxGuardMinutes = [(gid, Common.maxValuePair(minutes)) for gid, minutes in sleepMinutes.items()]
+	maxValues = max(maxGuardMinutes, key = lambda a:a[1][1])
+	max_gid2 = maxValues[0]
+	max_minute2 = maxValues[1][0]
+	print(max_gid2, max_minute2)
+	print(max_minute2 * max_gid2)
+	
+
+
 input = Common.inputAsLines()
-#input = Common.inputAsString()
-
 part1(input)
-#part2(input)
-
-
-
-
