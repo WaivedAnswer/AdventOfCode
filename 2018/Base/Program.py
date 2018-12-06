@@ -1,8 +1,9 @@
+#!/usr/bin/env python#
 import Common
 
 def part1(input):
     for line in input:
-        clean = Common.sub(line)
+        numbers = Common.numbers(line)
     return 0
             
 input = Common.inputAsLines()

@@ -22,5 +22,8 @@ def numbers(line):
 def maxValuePair(dictionary):
 	return max(dictionary.items(), key=lambda x:x[1])
     
+def minValuePair(dictionary):
+	return min(dictionary.items(), key=lambda x:x[1])
+    
 def sub(line):
     return re.sub('[^0-9]', ' ', line)
