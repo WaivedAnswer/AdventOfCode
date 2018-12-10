@@ -1,4 +1,4 @@
-#!/usr/bin/env python#
+#!/usr/bin/env python3#
 import Common
 import re
 import itertools
@@ -21,9 +21,10 @@ def placeMarble(i, player, scores, marbles, currMarbleIndex):
               currMarbleIndex = 0
        else:
               insertPos = (currMarbleIndex + 2) % len(marbles)
-              marbles.insert(insertPos, i)
+              marbles.rotate(-insertPos)
+              marbles.appendleft(i)
               
-              currMarbleIndex = insertPos
+              currMarbleIndex = 0
               
        return currMarbleIndex
        

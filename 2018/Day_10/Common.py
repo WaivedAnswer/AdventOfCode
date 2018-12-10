@@ -23,4 +23,4 @@ def maxValuePair(dictionary):
 	return max(dictionary.items(), key=lambda x:x[1])
     
 def sub(line):
-    return re.sub('[^-0-9]', ' ', line)
+    return re.sub('[^0-9]', ' ', line)
