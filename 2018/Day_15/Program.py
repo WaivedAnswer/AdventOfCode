@@ -7,33 +7,27 @@ RIGHT = (0,1)
 LEFT = (0,-1)
 
 directions = (DOWN, RIGHT, LEFT, UP)
-
-def makeVecFrom(coord1, coord2):
-    return (coord2.row - coord1.row, coord2.col - coord1.col)
-
-def dotProduct(vec1, vec2):
-    return vec1[0] * vec2[0] + vec1[1] * vec2[1]
     
 def getMoveDirection(coord1, coord2, grid):
-    coordVector = makeVecFrom(coord1, coord2)
     maxDirection = []
-    maxDot =  -9999999
+    minDist =  99999999
     for direction in directions:
         nextCoord = getNextCoord(coord1, direction)
-        if(grid[nextCoord.row][nextCoord.col][0] != "."):
+        if(grid[nextCoord.row][nextCoord.col] != "."):
             continue
-        dot = dotProduct(direction, coordVector)
-        if(dot <= 1):
-            return False
-        if(dot == maxDot):
+        dist = nextCoord.getManhattanDistance(coord2)
+        if(dist == minDist):
             maxDirection.append(direction)
-        elif(dot > maxDot):
+        elif(dist < minDist):
             maxDirection = []
             maxDirection.append(direction)
-            maxDot = dot
-    
-    newCoords = [getNextCoord(coord1, direction) for direction in maxDirection]
-    return readingOrderMin(maxCoords, len(grid))
+            minDist = dist
+      
+    newCoords = [(getNextCoord(coord1, direction), direction) for direction in maxDirection]
+    if not newCoords:
+        return None
+        
+    return min(newCoords, key=lambda coordPair: coordPair[0].row*len(grid) + coordPair[0].col)[1]
         
 
 def getNextCoord(coords, movementVec):
@@ -84,10 +78,10 @@ def moveUnit(unitNum, grid, units, goblins, elves):
     minDist = 999999999999
     for targetNum in targets:
         target = units[targetNum]
-        adjacents = [adjacent for adjacent in target.coords.getAdjacents() if (grid[adjacent.row][adjacent.col][1] == None and grid[adjacent.row][adjacent.col][0] == ".")]
+        adjacents = [adjacent for adjacent in target.coords.getAdjacents() if grid[adjacent.row][adjacent.col] == "." or grid[adjacent.row][adjacent.col] == unitNum]
         for adjacent in adjacents:
             dist = unit.coords.getManhattanDistance(adjacent)
-            if(dist <= 1):
+            if(dist == 0):
                 return False
             if(dist == minDist):
                 closest.append(adjacent)
@@ -95,20 +89,37 @@ def moveUnit(unitNum, grid, units, goblins, elves):
                 closest = []
                 closest.append(adjacent)
                 minDist = dist
-    
+    if not closest:
+        return False
     targetCoord = readingOrderMin(closest, len(grid))
-    print(targetCoord)
     targetDirection = getMoveDirection(unit.coords, targetCoord, grid)
     if(not targetDirection):
         return False
-    print(targetDirection)
-    grid[unit.coords.row][unit.coords.col] = (".", None)
-    print(unit.coords)
+    grid[unit.coords.row][unit.coords.col] = "."
     unit.coords = getNextCoord(unit.coords, targetDirection)
-    print(unit.coords)
-    grid[unit.coords.row][unit.coords.col] = (".", unitNum)
+    grid[unit.coords.row][unit.coords.col] = unitNum
     
     return True
+
+def getAttackTarget(unit, units, targets, grid):
+    adjacentCoords = [adjacent for adjacent in unit.coords.getAdjacents()]
+    adjacents = [adjacent for adjacent in adjacentCoords if grid[adjacent.row][adjacent.col] in targets]
+    if(not adjacents):
+        return None
+    minHealth = 99999999
+    minTargetCoords = []
+    for adjacent in adjacents:
+        targetUnit = units[grid[adjacent.row][adjacent.col]]
+        if targetUnit.health == minHealth:
+            minTargetCoords.append(adjacent)
+        elif targetUnit.health < minHealth:
+            minTargetCoords = [ adjacent ]
+            minHealth = targetUnit.health
+    
+    targetCoord = readingOrderMin(minTargetCoords, len(grid))
+    targetNum = grid[targetCoord.row][targetCoord.col]
+    target = units[targetNum]
+    return target
     
 def attackUnit(unitNum, grid, units, goblins, elves):
     unit = units[unitNum]
@@ -120,28 +131,23 @@ def attackUnit(unitNum, grid, units, goblins, elves):
         targets = elves
     else:
         targets = goblins
-    adjacentCoords = [adjacent for adjacent in unit.coords.getAdjacents()]
-    #for adjacent in adjacentCoords:
-        #print(grid[adjacent.row][adjacent.col][1])
-    adjacents = [adjacent for adjacent in adjacentCoords if grid[adjacent.row][adjacent.col][1] in targets]
-    if(not adjacents):
+        
+    target = getAttackTarget(unit, units, targets, grid)
+    if not target:
         return
-    print(adjacents)
-    targetCoord = readingOrderMin(adjacents, len(grid))
-    targetNum = grid[targetCoord.row][targetCoord.col][1]
-    target = units[targetNum]
+    
     unit.attack(target)
-    print(target.health)
 
-def removeDead(unitNums, units):
+def removeDead(unitNums, units, grid):
     toRemove = []
     for unitNum in unitNums:
         if(not units[unitNum].isAlive()):
             toRemove.append(unitNum)
-         
-    unitNums = [unit for unit in unitNums if unit not in toRemove]
     
     for deleted in toRemove:
+        coords = units[deleted].coords
+        grid[coords.row][coords.col] = "."
+        unitNums.remove(deleted)
         del units[deleted]
 
 def printGrid(grid, goblins, elves):
@@ -149,14 +155,15 @@ def printGrid(grid, goblins, elves):
     for i in range(len(grid)):
         for j in range(len(grid[i])):
             gridPos = grid[i][j]
-            if gridPos[1] in elves:
-                print("E", end="")
-            elif gridPos[1] in goblins:
-                print("G", end="")
+            if gridPos in elves:
+                print("E" + str(grid[i][j]), end="")
+            elif gridPos in goblins:
+                print("G" + str(grid[i][j]), end="")
             else:
-                print(gridPos[0], end="")
+                print(gridPos, end=" ")
         print("")
     print("")
+    
 def part1(input):
     grid = []
     goblins = []
@@ -166,32 +173,35 @@ def part1(input):
         grid.append([])
         for col,c in enumerate(line):
             if c == "#":
-                grid[row].append(("#", None))
+                grid[row].append("#")
             elif c == ".":
-                grid[row].append((".", None))
+                grid[row].append(".")
                 
             elif c == "G":
                 unitNum = len(units)
                 units[unitNum] = Unit(Coordinate(row,col), 3, 200)
                 goblins.append(unitNum)
-                grid[row].append((".", unitNum))
+                grid[row].append(unitNum)
             elif c == "E":
                 unitNum = len(units)
                 units[unitNum] = Unit(Coordinate(row,col), 3, 200)
                 elves.append(unitNum)
-                grid[row].append((".", unitNum))
+                grid[row].append(unitNum)
     rounds = 0
     while len(goblins) > 0 and len(elves) > 0:
+        
         for unitNum,unit in sorted(units.items(), key=lambda item: item[1].coords.row*len(grid) + item[1].coords.col ):
             if(not unit.isAlive()):
                 continue
-            elif( not moveUnit(unitNum, grid, units, goblins, elves)):
-                attackUnit(unitNum, grid, units, goblins, elves)
-        removeDead(elves, units)
-        removeDead(goblins, units)
+            moveUnit(unitNum, grid, units, goblins, elves)
+            attackUnit(unitNum, grid, units, goblins, elves)
+        removeDead(elves, units, grid)
+        removeDead(goblins, units, grid)
+        rounds += 1
+        print(rounds)
         printGrid(grid, goblins, elves)
         #print(len(elves), len(goblins))
-        rounds += 1
+
                 
     return rounds
             
