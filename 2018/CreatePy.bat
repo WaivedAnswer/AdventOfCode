@@ -11,7 +11,7 @@ SET programFile=%newDirectory%\Program.py
 echo %programFile%
 start notepad++ %programFile%
 
-start chrome "http://adventofcode.com/2015/day/%number%" "http://adventofcode.com/2015/day/%number%/input"
+start chrome "http://adventofcode.com/2018/day/%number%" "http://adventofcode.com/2018/day/%number%/input"
 
 start cmd /k "cd %newDirectory%"
 
