@@ -1,0 +1,37 @@
+# no negatives
+zero = 0
+one = 0
+two = 0
+three = 0 
+four = 0
+five = 0
+
+five += 2
+18		five = five * five
+19		five *= 19
+20		five *= 11
+21		four += 2
+22		four *= 22
+23		four += 16
+24		five *= four
+
+two = 1
+three = 2
+four = two * three
+four = four == five
+if(four)
+{
+	zero = two + zero
+}
+
+three = three + 1
+four = three > five
+if(!four)
+{
+	one = two + 4
+}
+else
+{
+	two = two + 1
+	four = two > 5
+}

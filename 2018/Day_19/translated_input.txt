@@ -1,0 +1,36 @@
+0	jmp	goto 17
+1		two = 1
+2		three = 2
+3		four = two * three
+4		four = four == five
+5	jmp	goto four + 6
+6	jmp	goto 8
+7		zero += two
+8		three += 1
+9		four = three > five
+10	jmp	goto 11 + four
+11	jmp	goto two + 5
+12		two += 1
+13		four = two > 5
+14	jmp	goto four + 15
+15	jmp	
+16	jmp	crash
+17		five += 2
+18		five = five * five
+19		five *= 19
+20		five *= 11
+21		four += 2
+22		four *= 22
+23		four += 16
+24		five *= four
+25	jmp	goto 26 + zero
+26	jmp	goto 1
+27		four = 27
+28		four *= 28
+29		four += 29
+30		four *= 30
+31		four *= 14
+32		four *= 32
+33		five *= four
+34		zero = 0
+35	jmp	goto zero + 1
