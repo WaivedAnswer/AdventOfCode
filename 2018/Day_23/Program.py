@@ -20,11 +20,24 @@ class Nanobot:
 		return get_manhattan_dist(self.coordinates, other_nano.coordinates) <= self.radius + other_nano.radius
 
 	def overlaps_bounds(self, bounds):
-		return all([(coord + self.radius >= bound[0]) and (coord - self.radius) <= bound[1] for coord, bound in
-					zip(self.coordinates, bounds)])
+		dist = 0
+		for coord, bound in zip(self.coordinates, bounds):
+			if bound[0] <= coord <= bound[1]:
+				dist += 0
+			else:
+				min_dist_to_bound = min([abs(coord - bound[0]), abs(coord - bound[1])])
+				dist += min_dist_to_bound
+		print(dist, self.radius, self.coordinates, bounds)
+		return dist <= self.radius
 
 	def is_within_range(self, coordinates):
 		return get_manhattan_dist(self.coordinates, coordinates) <= self.radius
+
+	def get_min(self, dim):
+		return self.coordinates[dim] - self.radius
+
+	def get_max(self, dim):
+		return self.coordinates[dim] + self.radius
 
 
 class Bounds:
@@ -67,12 +80,15 @@ class Bounds:
 		max_index = 1
 
 		max_coord = None
-		max_count = -1
 		min_dist = 999999999999
+		max_count = len(nanobots)
 		ranges = [list(range(bound[min_index], bound[max_index] + 1)) for bound in self.bounds]
 		bounds_iterator = itertools.product(*ranges)
+		print(self)
+		print(self.get_nano_count(nanobots))
 		for coord in bounds_iterator:
 			nano_count = get_nano_count_coord(nanobots, coord)
+			print(nano_count)
 			if nano_count < max_count:
 				continue
 			dist = get_manhattan_dist(coord, origin)
@@ -100,14 +116,12 @@ class OverlappingNanoSystem:
 		self.origin = origin
 
 	def get_coord_min(self, dim):
-		coord_vals = [bot.coordinates[dim] for bot in self.nanobots]
-		coord_vals.append(self.origin[dim])
-		return min(coord_vals)
+		min_vals = [bot.get_min(dim) for bot in self.nanobots]
+		return max(min_vals)
 
 	def get_coord_max(self, dim):
-		coord_vals = [bot.coordinates[dim] for bot in self.nanobots]
-		coord_vals.append(self.origin[dim])
-		return max(coord_vals)
+		max_vals = [bot.get_max(dim) for bot in self.nanobots]
+		return max(max_vals)
 
 	def filter_max_bounds(self, bounds_list):
 		bound_counts = [(bound.get_nano_count(self.nanobots), bound) for bound in bounds_list]
@@ -122,6 +136,8 @@ class OverlappingNanoSystem:
 			return bounds.get_best_coord_within(self.nanobots, self.origin)
 		else:
 			eligible_sub_bounds = self.filter_max_bounds(divided_bounds)
+			if len(eligible_sub_bounds) == 0:
+				return bounds.get_best_coord_within(self.nanobots, self.origin)
 			min_bound = min(eligible_sub_bounds, key=lambda bound: bound.get_min_manhattan_dist_to_origin(self.origin))
 			return self.get_best_coord_within_bounds(min_bound)
 
