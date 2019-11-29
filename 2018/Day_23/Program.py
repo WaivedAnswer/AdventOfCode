@@ -1,6 +1,7 @@
 import Common
 import networkx as nx
 import itertools
+import statistics
 
 
 def get_manhattan_dist(coord1, coord2):
@@ -27,7 +28,6 @@ class Nanobot:
 			else:
 				min_dist_to_bound = min([abs(coord - bound[0]), abs(coord - bound[1])])
 				dist += min_dist_to_bound
-		print(dist, self.radius, self.coordinates, bounds)
 		return dist <= self.radius
 
 	def is_within_range(self, coordinates):
@@ -55,16 +55,15 @@ class Bounds:
 
 	def subdivided(self):
 		subdivided_bounds = []
-		div_per_dim = 2
-		new_bound_lengths = [int((bound[1] - bound[0]) / div_per_dim) for bound in self.bounds]
-		if all([length <= 10 for length in new_bound_lengths]):
+		bound_lengths = [int((bound[1] - bound[0])) for bound in self.bounds]
+		if all([length <= 2 for length in bound_lengths]):
 			return None
-		sub_bound_perms = itertools.product(range(2), repeat=self.dimensions)
-		for topCorner in sub_bound_perms:
-			subdivided_bound = Bounds([(bound[0] + newLength * dim, bound[0] + newLength * (dim + 1))
-									   for bound, dim, newLength in
-									   zip(self.bounds, topCorner, new_bound_lengths)],
-									  self.dimensions)
+
+		new_bound_options = [[(bound[0], int(statistics.mean(bound))), (int(statistics.mean(bound)) + 1, bound[1])] for bound in self.bounds]
+		sub_bound_perms = itertools.product(*new_bound_options)
+
+		for new_bounds in sub_bound_perms:
+			subdivided_bound = Bounds(new_bounds, self.dimensions)
 			subdivided_bounds.append(subdivided_bound)
 		return subdivided_bounds
 
@@ -84,11 +83,9 @@ class Bounds:
 		max_count = len(nanobots)
 		ranges = [list(range(bound[min_index], bound[max_index] + 1)) for bound in self.bounds]
 		bounds_iterator = itertools.product(*ranges)
-		print(self)
-		print(self.get_nano_count(nanobots))
+		print(self.bounds)
 		for coord in bounds_iterator:
 			nano_count = get_nano_count_coord(nanobots, coord)
-			print(nano_count)
 			if nano_count < max_count:
 				continue
 			dist = get_manhattan_dist(coord, origin)
@@ -111,7 +108,6 @@ class OverlappingNanoSystem:
 	def __init__(self, nanobots, dimensions, origin):
 		self.nanobots = nanobots
 		self.nano_count = len(self.nanobots)
-		print(self.nano_count)
 		self.dimensions = dimensions
 		self.origin = origin
 
@@ -125,18 +121,17 @@ class OverlappingNanoSystem:
 
 	def filter_max_bounds(self, bounds_list):
 		bound_counts = [(bound.get_nano_count(self.nanobots), bound) for bound in bounds_list]
-		print(bound_counts)
 		return [sub_bound for count, sub_bound in bound_counts if
 				count == self.nano_count]
 
 	def get_best_coord_within_bounds(self, bounds):
-		# print(bounds)
 		divided_bounds = bounds.subdivided()
 		if not divided_bounds:
 			return bounds.get_best_coord_within(self.nanobots, self.origin)
 		else:
 			eligible_sub_bounds = self.filter_max_bounds(divided_bounds)
 			if len(eligible_sub_bounds) == 0:
+				print("No eligible sub_bounds")
 				return bounds.get_best_coord_within(self.nanobots, self.origin)
 			min_bound = min(eligible_sub_bounds, key=lambda bound: bound.get_min_manhattan_dist_to_origin(self.origin))
 			return self.get_best_coord_within_bounds(min_bound)
@@ -144,7 +139,6 @@ class OverlappingNanoSystem:
 	def get_best_coord(self):
 		max_bounds = Bounds([(self.get_coord_min(dim), self.get_coord_max(dim)) for dim in range(self.dimensions)],
 							self.dimensions)
-		print(max_bounds)
 		return self.get_best_coord_within_bounds(max_bounds)
 
 
