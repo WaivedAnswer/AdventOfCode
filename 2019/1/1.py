@@ -1,7 +1,5 @@
 import Common
 
-line_input = Common.inputAsLines()
-
 
 def calc_fuel(mass):
     return int(mass / 3) - 2
@@ -15,6 +13,7 @@ def calc_fuel_recursive(mass):
         return fuel + calc_fuel_recursive(fuel)
 
 
+line_input = Common.inputAsLines()
 mass_sum = 0
 recursive_sum = 0
 for line in line_input:
