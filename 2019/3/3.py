@@ -2,16 +2,7 @@ import Common
 from collections import defaultdict
 
 
-def get_manhattan_dist(coord):
-    return sum(abs(dim) for dim in coord)
-
-
 line_input = Common.inputAsLines()
-
-up = (0, -1)
-down = (0, 1)
-left = (-1, 0)
-right = (1, 0)
 
 wire_map = defaultdict(lambda: defaultdict(int))
 wire_id = 0
@@ -22,13 +13,13 @@ for line in line_input:
     for instruction in wire_instructions:
         dist = int(instruction[1:])
         if instruction[0] == "U":
-            direction = up
+            direction = Common.up
         elif instruction[0] == "D":
-            direction = down
+            direction = Common.down
         elif instruction[0] == "L":
-            direction = left
+            direction = Common.left
         elif instruction[0] == "R":
-            direction = right
+            direction = Common.right
         for i in range(1, dist + 1):
             curr_pos = (curr_pos[0] + direction[0], curr_pos[1] + direction[1])
             path_length += 1
