@@ -179,10 +179,10 @@ with open('input.txt') as f:
     input_string = f.read()
 
 registers = [int(num) for num in re.sub("[^-0-9]", " ", input_string).split()]
-coord_buffer = Buffer()
-beam_output = Buffer()
+movement_buffer = Buffer()
+camera_output = Buffer()
 
-robot = IntProgram(registers, coord_buffer, beam_output)
+robot = IntProgram(registers, movement_buffer, camera_output)
 
 NORTH = ( 0, -1)
 SOUTH = ( 0,  1)
@@ -196,32 +196,55 @@ directions = [
   EAST
 ]
 
-STATIONARY = 0
-PULLED = 1
+SCAFFOLD = 35
+OPEN = 46
+NEW_LINE = 10
 
 tile_map = {}
+path_graph = nx.Graph()
+curr_pos = (0, 0)
+
+minX = 9999
+maxX = -9999
+minY = 9999
+maxY = -9999
 
 while not robot.completed:
-    for x in range(50):
-        for y in range(50):
-            coord_buffer.post(x)
-            coord_buffer.post(y)
-            print(coord_buffer.buffer)
-            robot.run()
-            print(coord_buffer.buffer)
-            curr_pos = (x, y)
-            if beam_output.is_empty:
-                tile_map[curr_pos] = STATIONARY
-                continue
-            status = beam_output.get()
+    robot.run()
+    while not camera_output.is_empty():
+        status = camera_output.get()
+        if status == SCAFFOLD:
+            tile_map[curr_pos] = SCAFFOLD
+            curr_pos = get_new_pos(curr_pos, EAST)
+            continue
+        elif status == OPEN:
+            tile_map[curr_pos] = OPEN
+            curr_pos = get_new_pos(curr_pos, EAST)
+        elif status == NEW_LINE:
+            curr_pos = (0, curr_pos[1] + 1)
+        else:
             print(status)
-            if status == STATIONARY:
-                tile_map[curr_pos] = STATIONARY
-            elif status == PULLED:
-                tile_map[curr_pos] = PULLED
-            else:
-                assert(0)
-                continue
-            break
+            continue
+        minX = min(minX, curr_pos[0])
+        maxX = max(maxX, curr_pos[0])
+        minY = min(minY, curr_pos[1])
+        maxY = max(maxY, curr_pos[1])
 
-print(list(tile_map.values()).count(PULLED))
+
+print(len(tile_map))
+print(minX, maxX,minY, maxY)
+intersections = []
+for pos in tile_map:
+    if tile_map[pos] != SCAFFOLD:
+        continue
+    all_adjacents_scaffold = True
+    for direction in directions:
+        adjacent_pos = get_new_pos(pos, direction)
+        if adjacent_pos not in tile_map or \
+                tile_map[adjacent_pos] != SCAFFOLD:
+            all_adjacents_scaffold = False
+    if all_adjacents_scaffold:
+        intersections.append(pos)
+
+alignment = sum( pos[0] * pos[1] for pos in intersections)
+print(alignment)
