@@ -1,227 +1,135 @@
-from collections import defaultdict
-import re
 import networkx as nx
-import copy
+import Common
+import string
 
-
-def get_op_code(augmented_op):
-    return augmented_op % 100
 
 def get_new_pos(old_pos, move_vector):
-  return tuple(dim + move for dim, move in zip(old_pos, move_vector))
+    return tuple(dim + move for dim, move in zip(old_pos, move_vector))
 
 
-class Buffer:
-    def __init__(self):
-        self.buffer = []
-
-    def post(self, val):
-        self.buffer.append(val)
-
-    def is_empty(self):
-        return len(self.buffer) == 0
-
-    def get(self):
-        assert (not self.is_empty())
-        return self.buffer.pop(0)
+def is_door(symbol):
+    return symbol in string.ascii_uppercase
 
 
-class IntProgram:
-    def __init__(self, initial_registers, input_buffer, output_buffer):
-        self.instructions = {
-            1: self.add,
-            2: self.mult,
-            3: self.inp,
-            4: self.out,
-            5: self.jmp_true,
-            6: self.jmp_false,
-            7: self.less_than,
-            8: self.equals,
-            9: self.rel
-        }
-        self.registers = defaultdict(int)
-        for idx, initial_value in enumerate(initial_registers):
-            self.registers[idx] = initial_value
-        self.relative_base = 0
-        self.index = 0
-        self.input_buffer = input_buffer
-        self.output_buffer = output_buffer
-        self.completed = False
+def is_key(symbol):
+    return symbol in string.ascii_lowercase
 
-    def run(self):
 
-        while True:
-            op_code = get_op_code(self.registers[self.index])
-            if op_code == 99:
-                self.completed = True
-                break
-            elif op_code in self.instructions:
-                instruction = self.instructions[op_code]
-                old_index = self.index
-                self.index = instruction(self.registers, self.index)
-                if old_index == self.index:
-                    break
+def get_door(key):
+    return key.upper()
 
-    def get_param_mode(self, augmented_op, param_num):
-        divisor = pow(10, param_num + 2)
-        mod = (augmented_op % (10 * divisor))
-        return int(mod / divisor)
 
-    def get_inputs(self, registers, ip, size):
-        inputs = []
-        for i in range(size):
-            inputs.append(registers[ip + i])
-        return inputs
+def get_key(door):
+    return door.lower()
 
-    def set_value(self, registers, in_address, param_mode, value):
-        if param_mode == 0:
-            registers[in_address] = value
-        elif param_mode == 1:
-            assert (0)
-        elif param_mode == 2:
-            registers[self.relative_base + in_address] = value
+
+def add_adjacent_connections(pos, tiles, graph):
+    for move in directions:
+        adjacent_pos = get_new_pos(pos, move)
+        if adjacent_pos not in tiles:
+            continue
+
+        adjacent = tiles[adjacent_pos]
+        current = tiles[pos]
+
+        required_keys = []
+        if is_door(adjacent):
+            required_keys.append(get_key(adjacent))
+        if is_door(current):
+            required_keys.append(get_key(current))
+
+        if adjacent != WALL:
+            graph.add_edge(pos, adjacent_pos, required_keys=required_keys)
+
+
+def get_path_length(graph, start_pos, dest_pos, collected_keys):
+    return nx.shortest_path_length(graph, start_pos, dest_pos,
+                                   weight=lambda u, v, d:
+                                   1 if all(required in collected_keys for required in d['required_keys'])
+                                   else None)
+
+
+def get_min_traverse(pos, keys, collected_keys):
+    if len(keys) == len(collected_keys):
+        return 0
+    possibles = []
+    for key_item in keys.items():
+        key_sym, key_pos = key_item
+        if key_sym in collected_keys:
+            continue
+        try:
+            path_length = get_path_length(map_graph, pos, key_pos, collected_keys)
+            possibles.append((key_item, path_length))
+        except nx.NetworkXNoPath:
+            pass
+    total_possible_steps = []
+
+    for possible_key, path_length in possibles:
+        key_sym, key_pos = possible_key
+        if len(possibles) == 1:
+            collected_copy = collected_keys
         else:
-            assert 0
+            collected_copy = collected_keys.copy()
 
-    def get_value(self, registers, param_value, param_mode):
-        if param_mode == 0:
-            return registers[param_value]
-        elif param_mode == 1:
-            return param_value
-        elif param_mode == 2:
-            return registers[self.relative_base + param_value]
-        else:
-            assert 0
+        collected_copy.add(key_sym)
+        total_steps = get_min_traverse(key_pos, key_locations, collected_copy) + path_length
+        total_possible_steps.append(total_steps)
 
-    def get_param_modes(self, augmented_op, size):
-        return [self.get_param_mode(augmented_op, num) for num in range(size - 1)]
-
-    def add(self, registers, ip):
-        size = 4
-        augmented_op, noun, verb, result = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        result_value = self.get_value(registers, noun, param_modes[0]) + self.get_value(registers, verb, param_modes[1])
-        self.set_value(registers, result, param_modes[2], result_value)
-        return ip + size
-
-    def mult(self, registers, ip):
-        size = 4
-        augmented_op, noun, verb, result = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        result_value = self.get_value(registers, noun, param_modes[0]) * self.get_value(registers, verb, param_modes[1])
-        self.set_value(registers, result, param_modes[2], result_value)
-
-        return ip + size
-
-    def jmp_true(self, registers, ip):
-        size = 3
-        augmented_op, first, second = self.get_inputs(registers, ip, size)
-        param_modes = param_modes = self.get_param_modes(augmented_op, size)
-        if self.get_value(registers, first, param_modes[0]) != 0:
-            return self.get_value(registers, second, param_modes[1])
-        else:
-            return ip + size
-
-    def jmp_false(self, registers, ip):
-        size = 3
-        augmented_op, first, second = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        if self.get_value(registers, first, param_modes[0]) == 0:
-            return self.get_value(registers, second, param_modes[1])
-        else:
-            return ip + size
-
-    def less_than(self, registers, ip):
-        size = 4
-        augmented_op, noun, verb, result = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        result_value = self.get_value(registers, noun, param_modes[0]) < self.get_value(registers, verb, param_modes[1])
-        self.set_value(registers, result, param_modes[2], result_value)
-        return ip + size
-
-    def equals(self, registers, ip):
-        size = 4
-        augmented_op, noun, verb, result = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        result_value = self.get_value(registers, noun, param_modes[0]) == self.get_value(registers, verb,
-                                                                                         param_modes[1])
-        self.set_value(registers, result, param_modes[2], result_value)
-        return ip + size
-
-    def inp(self, registers, ip):
-        size = 2
-        augmented_op, result = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        if self.input_buffer.is_empty():
-            return ip
-
-        in_val = self.input_buffer.get()
-        self.set_value(registers, result, param_modes[0], in_val)
-        return ip + size
-
-    def out(self, registers, ip):
-        size = 2
-        augmented_op, out_val = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        result_value = self.get_value(registers, out_val, param_modes[0])
-        self.output_buffer.post(result_value)
-        return ip + size
-
-    def rel(self, registers, ip):
-        size = 2
-        augmented_op, rel_offset = self.get_inputs(registers, ip, size)
-        param_modes = self.get_param_modes(augmented_op, size)
-        self.relative_base += self.get_value(registers, rel_offset, param_modes[0])
-        return ip + size
+    return min(total_possible_steps)
 
 
-with open('input.txt') as f:
-    input_string = f.read()
-
-registers = [int(num) for num in re.sub("[^-0-9]", " ", input_string).split()]
-coord_buffer = Buffer()
-beam_output = Buffer()
-
-robot = IntProgram(registers, coord_buffer, beam_output)
-
-NORTH = ( 0, -1)
-SOUTH = ( 0,  1)
-EAST =  ( 1,  0)
-WEST =  (-1,  0)
+NORTH = (0, -1)
+SOUTH = (0, 1)
+EAST = (1, 0)
+WEST = (-1, 0)
 
 directions = [
-  NORTH,
-  SOUTH,
-  WEST,
-  EAST
+    NORTH,
+    SOUTH,
+    WEST,
+    EAST
 ]
 
-STATIONARY = 0
-PULLED = 1
+WALL = '#'  # impassable
+ENTRANCE = '@'  # passable
+OPEN = '.'  # passable
+# DOOR = uppercase #impassable until removed
+# KEY = lowercase #passable
+
+lines = Common.inputAsLines()
 
 tile_map = {}
+key_locations = {}
+door_locations = {}
+map_graph = nx.Graph()
+entrance_pos = None
 
-while not robot.completed:
-    for x in range(50):
-        for y in range(50):
-            coord_buffer.post(x)
-            coord_buffer.post(y)
-            print(coord_buffer.buffer)
-            robot.run()
-            print(coord_buffer.buffer)
-            curr_pos = (x, y)
-            if beam_output.is_empty:
-                tile_map[curr_pos] = STATIONARY
-                continue
-            status = beam_output.get()
-            print(status)
-            if status == STATIONARY:
-                tile_map[curr_pos] = STATIONARY
-            elif status == PULLED:
-                tile_map[curr_pos] = PULLED
-            else:
-                assert(0)
-                continue
-            break
+for row, line in enumerate(lines):
+    for col, c in enumerate(line):
+        curr_pos = (row, col)
+        tile_map[curr_pos] = c
+        if c == WALL:
+            continue
+        elif is_key(c):
+            key_locations[c] = curr_pos
+        elif is_door(c):
+            door_locations[c] = curr_pos
+        elif c == ENTRANCE:
+            entrance_pos = curr_pos
+        elif c == OPEN:
+            pass
+        else:
+            assert 0
 
-print(list(tile_map.values()).count(PULLED))
+        map_graph.add_node(curr_pos)
+
+        add_adjacent_connections(curr_pos, tile_map, map_graph)
+
+print(door_locations)
+
+curr_pos = entrance_pos
+visited_keys = set()
+
+total = get_min_traverse(curr_pos, key_locations, visited_keys)
+
+print(total)
