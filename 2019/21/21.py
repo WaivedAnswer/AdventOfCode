@@ -1,14 +1,13 @@
+import Common
 from collections import defaultdict
-import re
-import networkx as nx
-import copy
 
 
 def get_op_code(augmented_op):
     return augmented_op % 100
 
+
 def get_new_pos(old_pos, move_vector):
-  return tuple(dim + move for dim, move in zip(old_pos, move_vector))
+    return tuple(dim + move for dim, move in zip(old_pos, move_vector))
 
 
 class Buffer:
@@ -27,7 +26,7 @@ class Buffer:
 
 
 class IntProgram:
-    def __init__(self, initial_registers, input_buffer, output_buffer):
+    def __init__(self, registers, input_buffer, output_buffer):
         self.instructions = {
             1: self.add,
             2: self.mult,
@@ -40,7 +39,7 @@ class IntProgram:
             9: self.rel
         }
         self.registers = defaultdict(int)
-        for idx, initial_value in enumerate(initial_registers):
+        for idx, initial_value in enumerate(registers):
             self.registers[idx] = initial_value
         self.relative_base = 0
         self.index = 0
@@ -61,6 +60,8 @@ class IntProgram:
                 self.index = instruction(self.registers, self.index)
                 if old_index == self.index:
                     break
+            else:
+                assert 0
 
     def get_param_mode(self, augmented_op, param_num):
         divisor = pow(10, param_num + 2)
@@ -175,79 +176,53 @@ class IntProgram:
         return ip + size
 
 
-def get_status(x, y, registers, tiles):
-    coord_buffer = Buffer()
-    beam_output = Buffer()
-    robot = IntProgram(registers, coord_buffer, beam_output)
-    while not robot.completed:
-        coord_buffer.post(x)
-        coord_buffer.post(y)
-
-        robot.run()
-        curr_pos = (x, y)
-        if beam_output.is_empty():
-            assert (0)
-        status = beam_output.get()
-
-        if status == STATIONARY:
-            tiles[curr_pos] = STATIONARY
-        elif status == PULLED:
-            tiles[curr_pos] = PULLED
-        else:
-            assert (0)
-
-
 with open('input.txt') as f:
     input_string = f.read()
 
-initial_registers = [int(num) for num in re.sub("[^-0-9]", " ", input_string).split()]
+initial_registers = Common.numbers(input_string)
 
-NORTH = ( 0, -1)
-SOUTH = ( 0,  1)
-EAST =  ( 1,  0)
-WEST =  (-1,  0)
+HULL = ord('#')
+OPEN = ord('.')
+NEW_LINE = ord('\n')
+DROID = ord('@')
 
-directions = [
-  NORTH,
-  SOUTH,
-  WEST,
-  EAST
-]
 
-STATIONARY = 0
-PULLED = 1
+def part_1():
+    instructions = ["NOT A J", "NOT B T", "OR T J", "NOT C T", "OR T J", "AND D J", "WALK"]
+    run_hull_robot(instructions)
 
-tile_map = {}
 
-for row in range(50):
-    for col in range(50):
-        get_status(col, row, initial_registers, tile_map)
+def part_2():
+    instructions = ["NOT A J", "NOT B T", "OR T J", "NOT C T", "OR T J", "AND D J", "NOT H T", "NOT T T", "OR E T", "AND T J", "RUN"]
+    run_hull_robot(instructions)
 
-print(list(tile_map.values()).count(PULLED))
 
-picture = ""
-for row in range(50):
-    for col in range(50):
-        picture += str(tile_map[(col, row)])
-    picture += '\n'
-print(picture)
+def run_hull_robot(instructions):
+    program_input = Buffer()
+    camera_output = Buffer()
+    robot = IntProgram(initial_registers, program_input, camera_output)
+    for instruction in instructions:
+        for c in instruction:
+            program_input.post(ord(c))
+        program_input.post(NEW_LINE)
+    while not robot.completed:
+        robot.run()
+        picture = ""
+        while not camera_output.is_empty():
+            status = camera_output.get()
+            if status == HULL or status == OPEN or status == DROID:
+                picture += chr(status)
+            elif status == NEW_LINE:
+                picture += '\n'
+            else:
+                try:
+                    picture += chr(status)
+                except ValueError:
+                    print("Damage:", status)
+                    break
+        print(picture)
 
-"""minX = 0
-maxX = 1000
-minY = 50
-maxY = 1000
 
-found_initial_X = False
-found_initial_Y = False
+part_1()
 
-test_X = maxX
-test_Y = int((minY + maxY) / 2)
-
-while not found_initial_X:
-    if get_status(test_X, test_Y, initial_registers, tile_map) == PULLED:
-        print("Pulled")
-        break
-    else:
-        print(test_X)
-        test_X = test_X - 5"""
-
+part_2()

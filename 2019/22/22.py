@@ -94,23 +94,24 @@ part1_index = cards.index(2019)
 print(part1_index)
 
 seen = set()
-deck_size = 119315717514047
+deck_size = 10007
 deck = Deck(deck_size)
 lines = Common.inputAsLines()
-for i in range(101741582076661):
-    for line in lines:
-        instructions = line.split()
-        if instructions[0] == 'cut':
-            deck.cut_n(int(instructions[1]))
-        elif instructions[0] == 'deal' and instructions[1] == 'with':
-            deck.deal_increment(int(instructions[3]))
-        elif instructions[0] == 'deal':
-            deck.deal_new_stack()
-    val = deck.get_at(2020)
-    print(val)
-    if val in seen:
-        print(i)
-        break
-    seen.add(val)
 
-print(deck.get_at(2020))
+for line in lines:
+    instructions = line.split()
+    if instructions[0] == 'cut':
+        deck.cut_n(int(instructions[1]))
+    elif instructions[0] == 'deal' and instructions[1] == 'with':
+        deck.deal_increment(int(instructions[3]))
+    elif instructions[0] == 'deal':
+        deck.deal_new_stack()
+
+val = 2020
+print(101741582076661 % int(119315717514047/2))
+
+print("test")
+for i in range(1, 101741582076661 % int(119315717514047/2)):
+    val = deck.get_at(val)
+
+print(val)

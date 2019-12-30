@@ -196,13 +196,20 @@ directions = [
   EAST
 ]
 
-SCAFFOLD = 35
-OPEN = 46
-NEW_LINE = 10
+SCAFFOLD = ord('#')
+OPEN = ord('.')
+NEW_LINE = ord('\n')
+UP = ord('^')
+DOWN = ord('v')
+LEFT = ord('<')
+RIGHT = ord('>')
+
+robot_orientations = [UP, DOWN, LEFT, RIGHT]
 
 tile_map = {}
-path_graph = nx.Graph()
+scaffolds = set()
 curr_pos = (0, 0)
+robot_pos = None
 
 minX = 9999
 maxX = -9999
@@ -213,8 +220,11 @@ while not robot.completed:
     robot.run()
     while not camera_output.is_empty():
         status = camera_output.get()
-        if status == SCAFFOLD:
-            tile_map[curr_pos] = SCAFFOLD
+        if status == SCAFFOLD or status in robot_orientations:
+            if status in robot_orientations:
+                robot_pos = curr_pos
+            tile_map[curr_pos] = status
+            scaffolds.add(curr_pos)
             curr_pos = get_new_pos(curr_pos, EAST)
             continue
         elif status == OPEN:
@@ -223,16 +233,13 @@ while not robot.completed:
         elif status == NEW_LINE:
             curr_pos = (0, curr_pos[1] + 1)
         else:
-            print(status)
+            assert(0)
             continue
         minX = min(minX, curr_pos[0])
         maxX = max(maxX, curr_pos[0])
         minY = min(minY, curr_pos[1])
         maxY = max(maxY, curr_pos[1])
 
-
-print(len(tile_map))
-print(minX, maxX,minY, maxY)
 intersections = []
 for pos in tile_map:
     if tile_map[pos] != SCAFFOLD:
@@ -248,3 +255,9 @@ for pos in tile_map:
 
 alignment = sum( pos[0] * pos[1] for pos in intersections)
 print(alignment)
+
+path = ""
+visited = set()
+while len(visited) != len(scaffolds):
+    for move in directions:
+        adjacent_pos = get_new_pos(robot_pos)
